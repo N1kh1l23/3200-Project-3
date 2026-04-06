@@ -1,0 +1,16 @@
+{
+  "name": "cs3200-assignment6",
+  "version": "1.0.0",
+  "description": "CS3200 Assignment 6 - MongoDB + Redis tweet queries",
+  "scripts": {
+    "query1": "node Query1.js",
+    "query2": "node Query2.js",
+    "query3": "node Query3.js",
+    "query4": "node Query4.js",
+    "query5": "node Query5.js"
+  },
+  "dependencies": {
+    "mongodb": "^6.0.0",
+    "redis": "^4.0.0"
+  }
+}
