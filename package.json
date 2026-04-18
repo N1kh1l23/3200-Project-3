@@ -7,7 +7,11 @@
     "query2": "node Query2.js",
     "query3": "node Query3.js",
     "query4": "node Query4.js",
-    "query5": "node Query5.js"
+    "query5": "node Query5.js",
+    "crud:create": "node crud.js create",
+    "crud:read": "node crud.js read",
+    "crud:update": "node crud.js update",
+    "crud:delete": "node crud.js delete"
   },
   "dependencies": {
     "mongodb": "^6.0.0",

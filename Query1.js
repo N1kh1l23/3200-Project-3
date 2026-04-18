@@ -1,49 +1,43 @@
-// Query1.js
-// CS3200 Assignment 6
+// Query1.js  –  CS3200 Assignment 6
+// ─────────────────────────────────────────────────────────────────
+// Count the total number of tweets using a Redis string counter.
 //
-// Uses Redis to count the total number of tweets stored in MongoDB.
-// Steps:
-//   1. SET tweetCount to 0 in Redis
-//   2. Read every tweet from MongoDB
-//   3. INCR tweetCount once per tweet
-//   4. GET the final value and print it
+// Redis operations used:
+//   SET  tweetCount 0       ← initialise counter to 0
+//   INCR tweetCount         ← called once for every tweet in Mongo
+//   GET  tweetCount         ← read final value and print it
+// ─────────────────────────────────────────────────────────────────
 
 const { MongoClient } = require('mongodb');
-const { createClient }  = require('redis');
-
-const MONGO_URI = 'mongodb://localhost:27017';
-const DB_NAME   = 'ieeevisTweets';
-const COL_NAME  = 'tweets';
+const { createClient } = require('redis');
 
 async function main() {
-  // --- connect to MongoDB ---
-  const mongoClient = new MongoClient(MONGO_URI);
-  await mongoClient.connect();
-  const collection = mongoClient.db(DB_NAME).collection(COL_NAME);
+  // ── MongoDB connection ───────────────────────────────────────────
+  const mongo = new MongoClient('mongodb://localhost:27017');
+  await mongo.connect();
+  const tweets = mongo.db('ieeevisTweets').collection('tweets');
 
-  // --- connect to Redis ---
-  const redisClient = createClient({ url: 'redis://localhost:6379' });
-  await redisClient.connect();
+  // ── Redis connection ─────────────────────────────────────────────
+  const redis = createClient({ url: 'redis://localhost:6379' });
+  await redis.connect();
 
-  // initialise the counter
-  await redisClient.set('tweetCount', 0);
+  // Step 1 – initialise the counter
+  await redis.set('tweetCount', 0);
 
-  // fetch all tweets and increment the counter once per tweet
-  const tweets = await collection.find({}).toArray();
-  for (const tweet of tweets) {
-    await redisClient.incr('tweetCount');
+  // Step 2 – loop over every tweet and INCR once per document
+  const cursor = tweets.find({}, { projection: { _id: 1 } });
+  while (await cursor.hasNext()) {
+    await cursor.next();
+    await redis.incr('tweetCount');
   }
 
-  // read the final value and print
-  const count = await redisClient.get('tweetCount');
-  console.log(`There were ${count} tweets`);
+  // Step 3 – GET the final value and print
+  const total = await redis.get('tweetCount');
+  console.log(`There were ${total} tweets`);
 
-  // --- close connections ---
-  await mongoClient.close();
-  await redisClient.quit();
+  // ── close connections ────────────────────────────────────────────
+  await mongo.close();
+  await redis.quit();
 }
 
-main().catch(err => {
-  console.error('Error:', err);
-  process.exit(1);
-});
+main().catch(err => { console.error(err); process.exit(1); });

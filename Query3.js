@@ -1,52 +1,48 @@
-// Query3.js
-// CS3200 Assignment 6
+// Query3.js  –  CS3200 Assignment 6
+// ─────────────────────────────────────────────────────────────────
+// Count distinct users in the dataset using a Redis Set.
 //
-// Counts the number of distinct users in the tweet dataset using a Redis Set.
-// Steps:
-//   1. Read every tweet from MongoDB
-//   2. SADD each tweet's user.screen_name to the Redis set "screen_names"
-//      (duplicate values are automatically ignored by a Set)
-//   3. SCARD to get the number of unique members and print it
+// Redis operations used:
+//   SADD  screen_names <name>    ← add each user.screen_name
+//                                   (Redis Sets ignore duplicates)
+//   SCARD screen_names           ← returns the count of unique members
+// ─────────────────────────────────────────────────────────────────
 
 const { MongoClient } = require('mongodb');
-const { createClient }  = require('redis');
-
-const MONGO_URI = 'mongodb://localhost:27017';
-const DB_NAME   = 'ieeevisTweets';
-const COL_NAME  = 'tweets';
+const { createClient } = require('redis');
 
 async function main() {
-  // --- connect to MongoDB ---
-  const mongoClient = new MongoClient(MONGO_URI);
-  await mongoClient.connect();
-  const collection = mongoClient.db(DB_NAME).collection(COL_NAME);
+  // ── MongoDB connection ───────────────────────────────────────────
+  const mongo = new MongoClient('mongodb://localhost:27017');
+  await mongo.connect();
+  const tweets = mongo.db('ieeevisTweets').collection('tweets');
 
-  // --- connect to Redis ---
-  const redisClient = createClient({ url: 'redis://localhost:6379' });
-  await redisClient.connect();
+  // ── Redis connection ─────────────────────────────────────────────
+  const redis = createClient({ url: 'redis://localhost:6379' });
+  await redis.connect();
 
-  // clear any leftover data from a previous run
-  await redisClient.del('screen_names');
+  // Clear any data left from a previous run so the count is accurate
+  await redis.del('screen_names');
 
-  // fetch all tweets and add each user's screen_name to the set
-  const tweets = await collection.find({}).toArray();
-  for (const tweet of tweets) {
-    const screenName = tweet.user && tweet.user.screen_name;
-    if (screenName) {
-      await redisClient.sAdd('screen_names', screenName);
+  // Step 1 – read every tweet and SADD the user's screen_name
+  const allTweets = await tweets
+    .find({}, { projection: { 'user.screen_name': 1 } })
+    .toArray();
+
+  for (const tweet of allTweets) {
+    const name = tweet.user && tweet.user.screen_name;
+    if (name) {
+      await redis.sAdd('screen_names', String(name));
     }
   }
 
-  // SCARD returns the number of unique members in the set
-  const distinctUsers = await redisClient.sCard('screen_names');
-  console.log(`Number of distinct users: ${distinctUsers}`);
+  // Step 2 – SCARD gives the number of unique members in the set
+  const distinctCount = await redis.sCard('screen_names');
+  console.log(`Number of distinct users: ${distinctCount}`);
 
-  // --- close connections ---
-  await mongoClient.close();
-  await redisClient.quit();
+  // ── close connections ────────────────────────────────────────────
+  await mongo.close();
+  await redis.quit();
 }
 
-main().catch(err => {
-  console.error('Error:', err);
-  process.exit(1);
-});
+main().catch(err => { console.error(err); process.exit(1); });
