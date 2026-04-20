@@ -202,4 +202,4 @@ AI tools were used during this project for planning, debugging, and writing assi
 ## Video Walkthrough
 
 <!-- Paste your video link below once recorded -->
-**Link:** _TBD_
+**Link:** https://drive.google.com/file/d/1xgpvM8MocNqtM65ugRSznWinNcQNK-zt/view?usp=sharing
